@@ -139,7 +139,6 @@ function gaps(): ColumnDef<VenueRecord> {
     group('gaps-macro', 'Macro Performance', [
       group('gaps-macro-general', 'General', [
         leaf('macroGap', 'Overall Macro Gap', (row) => row.macroGap, { variant: 'number', format: score, width: 142, tone: 'gap' }),
-        leaf('alignmentStatus', 'Alignment Flag', (row) => row.alignmentStatus, { width: 132, tone: 'gap' }),
       ], 'gaps', 'gap'),
     ], 'gaps', 'gap'),
     group('gaps-axis', 'Axis-Level Variance', [
@@ -153,13 +152,16 @@ function gaps(): ColumnDef<VenueRecord> {
 function recommendations(): ColumnDef<VenueRecord> {
   return group('recommendations', 'Recommendations', [
     group('recommendations-actions', 'Recommended Actions', [
-      group('recommendations-general', 'General', [
-        leaf('recommendationType', 'Strategy Type', (row) => row.recommendation.type, { width: 126, tone: 'action' }),
-        leaf('recommendationFrom', 'From', (row) => row.recommendation.from, { width: 174, tone: 'action' }),
-        leaf('recommendationTo', 'To', (row) => row.recommendation.to, { width: 174, tone: 'action' }),
-        leaf('fromDynamics', 'Competitive Dynamics — From', (row) => row.recommendation.fromDynamics, { width: 260, tone: 'action' }),
-        leaf('toDynamics', 'Competitive Dynamics — To', (row) => row.recommendation.toDynamics, { width: 260, tone: 'action' }),
-        leaf('recommendedAction', 'Recommended Action', (row) => row.recommendation.action, { width: 300, tone: 'action' }),
+      group('recommendations-attribute-shift', 'Attribute Shift', [
+        leaf('recommendationFrom', 'Current Attributes', (row) => row.recommendation.changes.map((change) => `[${change.fromCode}] ${change.fromLabel}`).join(' | '), { width: 300, tone: 'action' }),
+        leaf('recommendationTo', 'Recommended Attributes', (row) => row.recommendation.changes.map((change) => `[${change.toCode}] ${change.toLabel}`).join(' | '), { width: 300, tone: 'action' }),
+      ], 'recommendations', 'action'),
+      group('recommendations-market', 'Competitive Set', [
+        leaf('fromDynamics', 'Current Competition', (row) => `${row.recommendation.currentCompetition.direct} direct · ${row.recommendation.currentCompetition.indirect} indirect`, { width: 180, tone: 'action' }),
+        leaf('toDynamics', 'Recommended Competition', (row) => `${row.recommendation.recommendedCompetition.direct} direct · ${row.recommendation.recommendedCompetition.indirect} indirect`, { width: 190, tone: 'action' }),
+      ], 'recommendations', 'action'),
+      group('recommendations-execution', 'Execution', [
+        leaf('recommendedAction', 'Recommendation', (row) => row.recommendation.action, { width: 310, tone: 'action' }),
       ], 'recommendations', 'action'),
     ], 'recommendations', 'action'),
   ], 'recommendations', 'action')

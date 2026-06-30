@@ -1,10 +1,9 @@
 import { axisDefinitions } from './schema'
 import type {
-  AlignmentStatus,
   AxisKey,
   AxisProfile,
   Daypart,
-  RecommendationType,
+  RecommendationChange,
   VenueRecord,
 } from '../types/domain'
 
@@ -83,12 +82,6 @@ function dominant(mix: Record<string, number>) {
   return Object.entries(mix).sort((a, b) => b[1] - a[1])[0][0]
 }
 
-function alignmentStatus(gap: number): AlignmentStatus {
-  if (gap >= 65) return 'Misaligned'
-  if (gap >= 38) return 'Watch'
-  return 'Aligned'
-}
-
 function createAxisProfile(random: () => number, axisKey: AxisKey): AxisProfile {
   const definition = axisDefinitions.find((axis) => axis.key === axisKey)!
   const codes = definition.attributes.map((attribute) => attribute.code)
@@ -118,6 +111,40 @@ function createAxisProfile(random: () => number, axisKey: AxisKey): AxisProfile 
   }
 }
 
+function attributeLabel(axisKey: AxisKey, code: string) {
+  return axisDefinitions
+    .find((axis) => axis.key === axisKey)!
+    .attributes.find((attribute) => attribute.code === code)!.label
+}
+
+function competitionForChanges(
+  axes: Record<AxisKey, AxisProfile>,
+  changes: RecommendationChange[],
+  state: 'current' | 'recommended',
+  venueSeed: number,
+) {
+  const competitorUniverse = Array.from({ length: 15 }, (_, index) => index)
+  const attributeSets = changes.map((change) => {
+    const code = state === 'current' ? change.fromCode : change.toCode
+    const count = axes[change.axis].attributeCompetition[code].competitorCount
+    return new Set(
+      [...competitorUniverse]
+        .sort((left, right) => {
+          const leftScore = hashSeed(`${venueSeed}:${change.axis}:${code}:${left}`) >>> 0
+          const rightScore = hashSeed(`${venueSeed}:${change.axis}:${code}:${right}`) >>> 0
+          return leftScore - rightScore
+        })
+        .slice(0, count),
+    )
+  })
+  return competitorUniverse.reduce((totals, competitor) => {
+    const matchCount = attributeSets.filter((set) => set.has(competitor)).length
+    if (matchCount === changes.length) totals.direct += 1
+    else if (matchCount / changes.length > 0.5) totals.indirect += 1
+    return totals
+  }, { direct: 0, indirect: 0 })
+}
+
 export function generateVenues(daypart: Daypart): VenueRecord[] {
   const daypartSeed = hashSeed(daypart)
 
@@ -132,12 +159,30 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
     )
     const currentCluster = clusters[index % clusters.length]
     const targetCluster = macroGap < 32 ? currentCluster : pick(random, clusters.filter((cluster) => cluster !== currentCluster))
-    const type: RecommendationType = macroGap < 32
-      ? 'Maintain'
-      : pick(random, ['CAPEX', 'Operational', 'Marketing'] as const)
+    const changeCount = macroGap < 32 ? 2 : 2 + (random() > 0.55 ? 1 : 0)
     const highestAxes = [...axisDefinitions]
       .sort((a, b) => axes[b.key].gap - axes[a.key].gap)
-      .slice(0, 3)
+      .slice(0, changeCount)
+    const changes = highestAxes.map((axis): RecommendationChange => {
+      const profile = axes[axis.key]
+      if (profile.targetDominant === profile.currentDominant) {
+        profile.targetDominant = Object.entries(profile.catchmentMix)
+          .filter(([code]) => code !== profile.currentDominant)
+          .sort((a, b) => b[1] - a[1])[0][0]
+      }
+      return {
+        axis: axis.key,
+        axisLabel: axis.label.replace(/^Axis \d+: /, ''),
+        fromCode: profile.currentDominant,
+        fromLabel: attributeLabel(axis.key, profile.currentDominant),
+        toCode: profile.targetDominant,
+        toLabel: attributeLabel(axis.key, profile.targetDominant),
+        gap: profile.gap,
+      }
+    })
+    const venueSeed = daypartSeed + index * 7919
+    const currentCompetition = competitionForChanges(axes, changes, 'current', venueSeed)
+    const recommendedCompetition = competitionForChanges(axes, changes, 'recommended', venueSeed)
 
     return {
       id: `VCE-${String(index + 1).padStart(3, '0')}`,
@@ -150,19 +195,15 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       longitude: 151.2 - random() * 9.4,
       currentCluster,
       targetCluster,
-      alignmentStatus: alignmentStatus(macroGap),
       macroGap,
       axes,
       recommendation: {
-        type,
-        from: currentCluster,
-        to: targetCluster,
-        action: type === 'Maintain'
+        changes,
+        currentCompetition,
+        recommendedCompetition,
+        action: macroGap < 32
           ? 'Maintain current proposition and monitor leading indicators.'
-          : `${type}: Strengthen ${targetCluster.toLowerCase()} proposition for the selected daypart.`,
-        fromDynamics: `${axes.customer.currentDominant} audience with ${axes.food.currentDominant} offer; ${axes.customer.directCompetitorCount} direct rivals.`,
-        toDynamics: `${axes.customer.targetDominant} demand with lower competitive friction and stronger local fit.`,
-        drivers: highestAxes.map((axis) => `${axis.label.replace(/^Axis \d+: /, '')} gap ${axes[axis.key].gap}`),
+          : `Prioritise ${changes.map((change) => change.toLabel.toLowerCase()).join(', ')} to close the largest demand gaps for the selected daypart.`,
       },
       assets: {
         indoorSeating: Math.floor(between(random, 45, 420)),

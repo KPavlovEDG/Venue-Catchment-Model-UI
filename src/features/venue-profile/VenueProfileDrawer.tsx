@@ -11,13 +11,15 @@ interface VenueProfileDrawerProps {
 }
 
 export function VenueProfileDrawer({ venue, onClose }: VenueProfileDrawerProps) {
+  const gapLevel = venue.macroGap >= 65 ? 'High gap' : venue.macroGap >= 38 ? 'Moderate gap' : 'Low gap'
+
   return (
     <aside aria-label={`${venue.name} venue profile`} className="venue-drawer">
       <div className="drawer-header">
         <div className="drawer-header-top"><span className="venue-id"><Building2 size={13} />{venue.id}</span><button aria-label="Close venue profile" onClick={onClose} type="button"><X size={18} /></button></div>
         <h2>{venue.name}</h2>
         <p><MapPin size={14} /> {venue.region} · {venue.lga}</p>
-        <div className="drawer-status-row"><span className={`status-pill status-${venue.alignmentStatus.toLowerCase()}`}><span />{venue.alignmentStatus}</span><span className="macro-score"><strong>{venue.macroGap}</strong>/100 gap</span></div>
+        <div className="drawer-status-row"><span className={`gap-level gap-${venue.macroGap >= 65 ? 'high' : venue.macroGap >= 38 ? 'medium' : 'low'}`}>{gapLevel}</span><span className="macro-score"><strong>{venue.macroGap}</strong>/100 gap</span></div>
       </div>
 
       <div className="drawer-body">
@@ -41,14 +43,25 @@ export function VenueProfileDrawer({ venue, onClose }: VenueProfileDrawerProps) 
         </section>
 
         <section className="recommendation-card">
-          <div className="recommendation-kicker"><Sparkles size={15} /><span>Automated recommendation</span><strong>{venue.recommendation.type}</strong></div>
+          <div className="recommendation-kicker"><Sparkles size={15} /><span>Automated recommendation</span><strong>{venue.recommendation.changes.length} priority shifts</strong></div>
           <h3>{venue.recommendation.action}</h3>
-          <p>The model identified the following micro-drivers:</p>
-          <ul>{venue.recommendation.drivers.map((driver) => <li key={driver}>{driver}</li>)}</ul>
-          <div className="competitive-note"><span>Competitive read</span>{venue.recommendation.toDynamics}</div>
+          <div className="recommendation-shifts">
+            {venue.recommendation.changes.map((change) => (
+              <div className="recommendation-shift" key={change.axis}>
+                <span><strong>{change.axisLabel}</strong><small>Gap {change.gap}</small></span>
+                <span className="shift-value current">[{change.fromCode}] {change.fromLabel}</span>
+                <ArrowRight size={14} />
+                <span className="shift-value target">[{change.toCode}] {change.toLabel}</span>
+              </div>
+            ))}
+          </div>
+          <div className="competition-comparison">
+            <div><span>Current competitive set</span><strong>{venue.recommendation.currentCompetition.direct} direct</strong><small>{venue.recommendation.currentCompetition.indirect} indirect</small></div>
+            <ArrowRight size={16} />
+            <div><span>Recommended set</span><strong>{venue.recommendation.recommendedCompetition.direct} direct</strong><small>{venue.recommendation.recommendedCompetition.indirect} indirect</small></div>
+          </div>
         </section>
       </div>
     </aside>
   )
 }
-

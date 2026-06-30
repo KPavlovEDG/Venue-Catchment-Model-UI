@@ -15,9 +15,6 @@ export type Daypart =
   | 'High-Velocity Nightlife'
   | 'Weekend Leisure'
 
-export type AlignmentStatus = 'Aligned' | 'Watch' | 'Misaligned'
-export type RecommendationType = 'CAPEX' | 'Operational' | 'Marketing' | 'Maintain'
-
 export interface AxisProfile {
   currentDominant: string
   targetDominant: string
@@ -33,6 +30,21 @@ export interface AxisProfile {
     string,
     { competitorCount: number; competitorShareOfTime: number }
   >
+}
+
+export interface RecommendationChange {
+  axis: AxisKey
+  axisLabel: string
+  fromCode: string
+  fromLabel: string
+  toCode: string
+  toLabel: string
+  gap: number
+}
+
+export interface CompetitorCounts {
+  direct: number
+  indirect: number
 }
 
 export interface VenueAssets {
@@ -138,17 +150,13 @@ export interface VenueRecord {
   longitude: number
   currentCluster: string
   targetCluster: string
-  alignmentStatus: AlignmentStatus
   macroGap: number
   axes: Record<AxisKey, AxisProfile>
   recommendation: {
-    type: RecommendationType
-    from: string
-    to: string
+    changes: RecommendationChange[]
+    currentCompetition: CompetitorCounts
+    recommendedCompetition: CompetitorCounts
     action: string
-    fromDynamics: string
-    toDynamics: string
-    drivers: string[]
   }
   assets: VenueAssets
   operations: VenueOperations
@@ -179,4 +187,3 @@ export interface ColumnFilterValue {
   min?: number
   max?: number
 }
-

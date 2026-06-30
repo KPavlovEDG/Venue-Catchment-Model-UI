@@ -5,8 +5,8 @@ interface RadarChartProps {
   venue: VenueRecord
 }
 
-const center = { x: 180, y: 132 }
-const radius = 88
+const center = { x: 180, y: 140 }
+const radius = 102
 
 function point(index: number, value: number) {
   const angle = -Math.PI / 2 + (index * Math.PI * 2) / axisDefinitions.length
@@ -17,11 +17,14 @@ function point(index: number, value: number) {
 export function RadarChart({ venue }: RadarChartProps) {
   const venueValues = axisDefinitions.map((axis) => Math.max(...Object.values(venue.axes[axis.key].venueMix)))
   const catchmentValues = axisDefinitions.map((axis) => Math.max(...Object.values(venue.axes[axis.key].catchmentMix)))
+  const maximumValue = Math.max(...venueValues, ...catchmentValues)
+  const scaleMaximum = Math.min(100, Math.max(40, Math.ceil(maximumValue / 10) * 10))
+  const scale = (value: number) => (value / scaleMaximum) * 100
 
   return (
     <div className="radar-wrap">
-      <div className="chart-heading"><div><span className="eyebrow">Selected daypart</span><h3>Demand vs supply profile</h3></div><span className="chart-scale">Dominant weight · %</span></div>
-      <svg aria-label="Radar chart comparing venue and catchment profile strength across eight axes" className="radar-chart" role="img" viewBox="0 0 360 292">
+      <div className="chart-heading"><div><span className="eyebrow">Selected daypart</span><h3>Demand vs supply profile</h3></div><span className="chart-scale">Adaptive scale · 0–{scaleMaximum}%</span></div>
+      <svg aria-label="Radar chart comparing venue and catchment profile strength across eight axes" className="radar-chart" role="img" viewBox="0 0 360 310">
         {[25, 50, 75, 100].map((ring) => (
           <polygon className="radar-ring" key={ring} points={axisDefinitions.map((_, index) => point(index, ring)).join(' ')} />
         ))}
@@ -35,19 +38,18 @@ export function RadarChart({ venue }: RadarChartProps) {
             </g>
           )
         })}
-        <polygon className="radar-area catchment" points={catchmentValues.map((value, index) => point(index, value)).join(' ')} />
-        <polygon className="radar-area venue" points={venueValues.map((value, index) => point(index, value)).join(' ')} />
+        <polygon className="radar-area catchment" points={catchmentValues.map((value, index) => point(index, scale(value))).join(' ')} />
+        <polygon className="radar-area venue" points={venueValues.map((value, index) => point(index, scale(value))).join(' ')} />
         {venueValues.map((value, index) => {
-          const [x, y] = point(index, value).split(',')
-          return <circle className="radar-point venue" cx={x} cy={y} key={`v-${axisDefinitions[index].key}`} r="3" />
+          const [x, y] = point(index, scale(value)).split(',')
+          return <circle className="radar-point venue" cx={x} cy={y} key={`v-${axisDefinitions[index].key}`} r="4" />
         })}
         {catchmentValues.map((value, index) => {
-          const [x, y] = point(index, value).split(',')
-          return <circle className="radar-point catchment" cx={x} cy={y} key={`c-${axisDefinitions[index].key}`} r="3" />
+          const [x, y] = point(index, scale(value)).split(',')
+          return <circle className="radar-point catchment" cx={x} cy={y} key={`c-${axisDefinitions[index].key}`} r="4" />
         })}
       </svg>
       <div className="radar-legend"><span><i className="legend-venue" />Venue profile</span><span><i className="legend-catchment" />Catchment profile</span></div>
     </div>
   )
 }
-

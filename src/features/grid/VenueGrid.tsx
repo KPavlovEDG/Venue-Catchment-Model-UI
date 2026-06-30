@@ -27,6 +27,42 @@ interface VenueGridProps {
   exportRequest: number
 }
 
+function gapLevel(value: number) {
+  return value >= 65 ? 'high' : value >= 38 ? 'medium' : 'low'
+}
+
+function AxisGap({ value }: { value: number }) {
+  return (
+    <span className={`axis-gap gap-${gapLevel(value)}`}>
+      <strong>{value}</strong>
+      <span className="axis-gap-track"><i style={{ width: `${value}%` }} /></span>
+    </span>
+  )
+}
+
+function RecommendationAttributes({ venue, target }: { venue: VenueRecord; target: boolean }) {
+  return (
+    <span className={`recommendation-attributes ${target ? 'target' : 'current'}`}>
+      {venue.recommendation.changes.map((change) => (
+        <span className="attribute-chip" key={change.axis}>
+          <small>{change.axisLabel}</small>
+          <strong>[{target ? change.toCode : change.fromCode}] {target ? change.toLabel : change.fromLabel}</strong>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function CompetitionCell({ venue, target }: { venue: VenueRecord; target: boolean }) {
+  const counts = target ? venue.recommendation.recommendedCompetition : venue.recommendation.currentCompetition
+  return (
+    <span className="competition-cell">
+      <span><strong>{counts.direct}</strong><small>direct</small></span>
+      <span><strong>{counts.indirect}</strong><small>indirect</small></span>
+    </span>
+  )
+}
+
 export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelectionChange, onVenueSelect, exportRequest }: VenueGridProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'macroGap', desc: true }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -95,10 +131,14 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
                     >
                       {header.isPlaceholder ? null : isLeaf ? (
                         <div className="leaf-header">
-                          <button className="sort-trigger" disabled={!header.column.getCanSort()} onClick={header.column.getToggleSortingHandler()} type="button">
-                            <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
-                            {header.column.getCanSort() && (header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : header.column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown className="sort-idle" size={12} />)}
-                          </button>
+                          {header.column.getCanSort() ? (
+                            <button className="sort-trigger" onClick={header.column.getToggleSortingHandler()} type="button">
+                              <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                              {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : header.column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown className="sort-idle" size={12} />}
+                            </button>
+                          ) : (
+                            <div className="sort-trigger static"><span>{flexRender(header.column.columnDef.header, header.getContext())}</span></div>
+                          )}
                           {header.column.getCanFilter() && <ColumnFilterPopover column={header.column} />}
                         </div>
                       ) : <span className="group-header-label">{flexRender(header.column.columnDef.header, header.getContext())}</span>}
@@ -116,9 +156,13 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
                   const value = cell.getValue()
                   return (
                     <td className={`${meta?.align ? `align-${meta.align}` : ''} ${meta?.tone ? `tone-${meta.tone}` : ''} ${meta?.sticky ? `sticky-${cell.column.id}` : ''}`} key={cell.id} style={{ width: cell.column.getSize() }}>
-                      {cell.column.id === 'macroGap' ? <span className={`gap-badge gap-${Number(value) >= 65 ? 'high' : Number(value) >= 38 ? 'medium' : 'low'}`}>{String(value)}</span>
-                        : cell.column.id === 'alignmentStatus' ? <span className={`status-pill status-${String(value).toLowerCase()}`}><span />{String(value)}</span>
-                        : cell.column.id === 'recommendationType' ? <span className="strategy-pill">{String(value)}</span>
+                      {cell.column.id === 'macroGap' ? <span className={`gap-badge gap-${gapLevel(Number(value))}`}>{String(value)}</span>
+                        : cell.column.id.startsWith('gap-') ? <AxisGap value={Number(value)} />
+                        : cell.column.id === 'recommendationFrom' ? <RecommendationAttributes venue={row.original} target={false} />
+                        : cell.column.id === 'recommendationTo' ? <RecommendationAttributes venue={row.original} target />
+                        : cell.column.id === 'fromDynamics' ? <CompetitionCell venue={row.original} target={false} />
+                        : cell.column.id === 'toDynamics' ? <CompetitionCell venue={row.original} target />
+                        : cell.column.id === 'recommendedAction' ? <span className="recommendation-summary">{String(value)}</span>
                         : flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   )
