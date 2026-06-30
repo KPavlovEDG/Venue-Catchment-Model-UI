@@ -1,0 +1,52 @@
+# Prototype scope and requirements mapping
+
+## Source priority
+
+1. `UI UX Specifications: Performance Gap Analysis Dashboard` (version 0.1) - source of truth for UI behavior and grid schema.
+2. `Venue-Catchment Model - WIP` (June 2026) - model rationale, user journeys, axes, data dictionary, and recommendation context.
+3. `Grid View.html` - early visual reference only; superseded where it conflicts with the UI specification.
+
+The source files are not copied into this repository because they may contain internal material. This document records the implementation decisions needed by the prototype.
+
+## Implemented requirements
+
+| Requirement | Prototype implementation |
+| --- | --- |
+| Right-side venue profile drawer | Fixed 480 px drawer opened by row selection |
+| Excel-like header filters | Text search, unique-value selection, and numeric min/max filters in every eligible leaf header |
+| Lean left command deck | Exactly four modules: geography, daypart, metric groups, and custom cohorts |
+| Top global action bar | Product identity, disabled Map View, active Grid View, sync status, export, and recalculation |
+| Four-tier grid schema | Category -> axis/subject -> segment -> field metric |
+| 50 venues | Deterministic mock generator with realistic Australian venue, catchment, financial, asset, and loyalty values |
+| Eight-axis comparison | Customer, affluence, occasion, food, beverage, gaming, accommodation, and event/function |
+| 35 proportional attributes | Venue/catchment mixes and attribute-level competition data available in the column tree |
+| Venue profile chart | Native SVG radar comparing dominant venue and catchment weights across all axes |
+| Financial audit | EBIT, EBITDA growth, ROI, funds employed, and trading density |
+| Automated recommendation | Strategy type, target shift, drivers, and competition rationale |
+| Custom selection workflow | Multi-row selection with named cohorts persisted to localStorage |
+| Export | Current filtered row set exported as CSV |
+
+## Deliberate prototype boundaries
+
+- `Map View` is visible but disabled.
+- `Recalculate Model` simulates a FastAPI job and completion state.
+- Cohorts are local to the browser; no user or server ownership exists yet.
+- Data definitions marked TBD in source material are represented by the closest available catchment context fields and should be reconciled with the final backend data dictionary.
+- No AG Grid Enterprise dependency or licence is required. TanStack Table provides the headless grid model and the UI implements the specified interactions.
+
+## Expected backend boundaries
+
+The first production integration should expose endpoints equivalent to:
+
+```text
+GET  /venues?regions=&daypart=
+GET  /venues/{venueId}?daypart=
+POST /model/recalculate
+GET  /model/jobs/{jobId}
+GET  /cohorts
+POST /cohorts
+GET  /exports/venues?format=csv
+```
+
+The API should return stable field identifiers matching `VenueRecord`, not UI-formatted strings. Currency, percentage, status, and date formatting remain front-end responsibilities.
+

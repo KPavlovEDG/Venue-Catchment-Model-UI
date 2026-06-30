@@ -1,0 +1,62 @@
+# Venue Catchment Model UI
+
+Interactive front-end prototype for the ALH Hotels Venue Recommendation and Catchment Optimisation Engine.
+
+The prototype turns a dense performance-gap dataset into an operational cohort-building workspace. It is intentionally front-end only: all 50 venues and model outputs are deterministic mock data, and backend actions are simulated behind UI-ready boundaries.
+
+## Run locally
+
+Prerequisites: Node.js 22+ and pnpm 11+.
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Open `http://localhost:5173`.
+
+Quality checks:
+
+```bash
+pnpm lint
+pnpm build
+pnpm preview
+```
+
+## Prototype capabilities
+
+- Grid View with a strict four-tier column hierarchy and 304 available leaf columns
+- 50 realistic, deterministic venue records across 8 axes and 35 profile attributes
+- Excel-style per-column search, value selection, and numeric range filters
+- Multi-region geography filtering and five temporal daypart model slices
+- Metric-group visibility tree for Basic Facts, profiles, gaps, recommendations, competition, proportional results, and underlying metrics
+- Multi-row selection and browser-persisted custom cohorts
+- CSV export of the currently filtered grid
+- Simulated model recalculation state and sync timestamp
+- 480 px venue profile drawer with alignment, radar comparison, financial audit, and automated recommendation
+
+Map View, FastAPI integration, server-side cohort persistence, authentication, and production data ingestion are outside this prototype scope.
+
+## Project structure
+
+```text
+src/
+  app/                    Application state and orchestration
+  components/             Global shell and command deck
+  data/                   Canonical axis schema and mock-data generator
+  features/
+    grid/                  Four-tier TanStack grid and column filters
+    venue-profile/         Venue drawer and SVG radar chart
+  styles/                 Shared visual system
+  types/                  Domain and TanStack metadata contracts
+  utils/                  CSV export
+docs/
+  prototype-scope.md      Requirements mapping and integration boundaries
+```
+
+## Technical direction
+
+React, Vite, and TypeScript provide the application shell. TanStack Table is used instead of AG Grid Enterprise to avoid a prototype-time licence dependency while retaining full control over nested headers, filtering, visibility, and selection. The chart is native SVG, keeping the bundle and visual behavior predictable.
+
+The canonical domain schema in `src/data/schema.ts` drives both generated data and UI columns. A future FastAPI response should conform to the interfaces in `src/types/domain.ts`; replacing `generateVenues()` with a query layer should not require redesigning the grid or venue profile.
+
