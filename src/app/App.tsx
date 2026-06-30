@@ -5,8 +5,10 @@ import { Sidebar } from '../components/Sidebar'
 import { generateVenues } from '../data/generateVenues'
 import { metricGroups, regionsByState } from '../data/schema'
 import { VenueGrid } from '../features/grid/VenueGrid'
+import { MapSidebar } from '../features/map/MapSidebar'
+import { MapView } from '../features/map/MapView'
 import { VenueProfileDrawer } from '../features/venue-profile/VenueProfileDrawer'
-import type { Daypart, MetricGroupId, SavedCohort, VenueRecord } from '../types/domain'
+import type { DashboardView, Daypart, GapPriority, MapLayers, MapMetric, MetricGroupId, SavedCohort, VenueRecord } from '../types/domain'
 
 const storageKey = 'venue-catchment-cohorts-v1'
 
@@ -19,6 +21,7 @@ function initialCohorts(): SavedCohort[] {
 }
 
 export function App() {
+  const [activeView, setActiveView] = useState<DashboardView>('grid')
   const [daypart, setDaypart] = useState<Daypart>('Weekly Aggregated')
   const [selectedRegions, setSelectedRegions] = useState<string[]>(Object.values(regionsByState).flat())
   const [activeMetricGroups, setActiveMetricGroups] = useState<Set<MetricGroupId>>(
@@ -31,6 +34,9 @@ export function App() {
   const [exportRequest, setExportRequest] = useState(0)
   const [isRecalculating, setIsRecalculating] = useState(false)
   const [lastSynced, setLastSynced] = useState('Today, 09:00 AM')
+  const [mapMetric, setMapMetric] = useState<MapMetric>('overall')
+  const [mapPriority, setMapPriority] = useState<GapPriority>('all')
+  const [mapLayers, setMapLayers] = useState<MapLayers>({ catchmentRadius: true, competitorPressure: true })
 
   const allVenues = useMemo(() => generateVenues(daypart), [daypart])
   const venues = useMemo(
@@ -78,39 +84,68 @@ export function App() {
   return (
     <div className="app-shell">
       <GlobalHeader
+        activeView={activeView}
         isRecalculating={isRecalculating}
         lastSynced={lastSynced}
         onExport={() => setExportRequest((value) => value + 1)}
         onRecalculate={recalculate}
+        onViewChange={(view) => { setActiveView(view); setSelectedVenue(null) }}
       />
       <div className="workspace">
-        <Sidebar
-          activeMetricGroups={activeMetricGroups}
-          cohortName={cohortName}
-          cohorts={cohorts}
-          daypart={daypart}
-          onCohortNameChange={setCohortName}
-          onDaypartChange={(next) => { setDaypart(next); setSelectedVenue(null) }}
-          onDeleteCohort={(id) => setCohorts((current) => current.filter((cohort) => cohort.id !== id))}
-          onLoadCohort={loadCohort}
-          onMetricGroupToggle={toggleMetricGroup}
-          onRegionsChange={setSelectedRegions}
-          onSaveCohort={saveCohort}
-          selectedRegions={selectedRegions}
-          selectedVenueCount={Object.values(rowSelection).filter(Boolean).length}
-        />
-        <main className="main-content">
-          <VenueGrid
+        {activeView === 'grid' ? (
+          <Sidebar
             activeMetricGroups={activeMetricGroups}
-            data={venues}
-            exportRequest={exportRequest}
-            onRowSelectionChange={updateSelection}
-            onVenueSelect={setSelectedVenue}
-            rowSelection={rowSelection}
+            cohortName={cohortName}
+            cohorts={cohorts}
+            daypart={daypart}
+            onCohortNameChange={setCohortName}
+            onDaypartChange={(next) => { setDaypart(next); setSelectedVenue(null) }}
+            onDeleteCohort={(id) => setCohorts((current) => current.filter((cohort) => cohort.id !== id))}
+            onLoadCohort={loadCohort}
+            onMetricGroupToggle={toggleMetricGroup}
+            onRegionsChange={setSelectedRegions}
+            onSaveCohort={saveCohort}
+            selectedRegions={selectedRegions}
+            selectedVenueCount={Object.values(rowSelection).filter(Boolean).length}
           />
+        ) : (
+          <MapSidebar
+            daypart={daypart}
+            focusMetric={mapMetric}
+            layers={mapLayers}
+            onDaypartChange={(next) => { setDaypart(next); setSelectedVenue(null) }}
+            onFocusMetricChange={(metric) => { setMapMetric(metric); setSelectedVenue(null) }}
+            onLayersChange={setMapLayers}
+            onPriorityChange={(priority) => { setMapPriority(priority); setSelectedVenue(null) }}
+            onRegionsChange={(regions) => { setSelectedRegions(regions); setSelectedVenue(null) }}
+            priority={mapPriority}
+            selectedRegions={selectedRegions}
+          />
+        )}
+        <main className="main-content">
+          {activeView === 'grid' ? (
+            <VenueGrid
+              activeMetricGroups={activeMetricGroups}
+              data={venues}
+              exportRequest={exportRequest}
+              onRowSelectionChange={updateSelection}
+              onVenueSelect={setSelectedVenue}
+              rowSelection={rowSelection}
+            />
+          ) : (
+            <MapView
+              data={venues}
+              exportRequest={exportRequest}
+              focusMetric={mapMetric}
+              layers={mapLayers}
+              onVenueSelect={setSelectedVenue}
+              priority={mapPriority}
+              selectedVenue={selectedVenue}
+            />
+          )}
         </main>
       </div>
-      {selectedVenue && <VenueProfileDrawer onClose={() => setSelectedVenue(null)} venue={selectedVenue} />}
+      {activeView === 'grid' && selectedVenue && <VenueProfileDrawer onClose={() => setSelectedVenue(null)} venue={selectedVenue} />}
     </div>
   )
 }

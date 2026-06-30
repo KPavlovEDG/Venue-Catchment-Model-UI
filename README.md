@@ -28,6 +28,7 @@ pnpm preview
 ## Prototype capabilities
 
 - Grid View with a strict four-tier column hierarchy and 302 available leaf columns
+- Interactive Map View with macro/axis gap lenses, priority filtering, catchment radii, and competitor-pressure overlays
 - 50 realistic, deterministic venue records across 8 axes and 35 profile attributes
 - Excel-style per-column search, value selection, and numeric range filters
 - Multi-region geography filtering and five temporal daypart model slices
@@ -37,7 +38,7 @@ pnpm preview
 - Simulated model recalculation state and sync timestamp
 - 480 px venue profile drawer with gap severity, adaptive radar comparison, financial audit, and attribute-level recommendations
 
-Map View, FastAPI integration, server-side cohort persistence, authentication, and production data ingestion are outside this prototype scope.
+FastAPI integration, server-side cohort persistence, authentication, and production data ingestion are outside this prototype scope.
 
 ## Project structure
 
@@ -48,6 +49,7 @@ src/
   data/                   Canonical axis schema and mock-data generator
   features/
     grid/                  Four-tier TanStack grid and column filters
+    map/                   Leaflet opportunity map and venue summary panel
     venue-profile/         Venue drawer and SVG radar chart
   styles/                 Shared visual system
   types/                  Domain and TanStack metadata contracts
@@ -58,7 +60,7 @@ docs/
 
 ## Technical direction
 
-React, Vite, and TypeScript provide the application shell. TanStack Table is used instead of AG Grid Enterprise to avoid a prototype-time licence dependency while retaining full control over nested headers, filtering, visibility, and selection. The chart is native SVG, keeping the bundle and visual behavior predictable.
+React, Vite, and TypeScript provide the application shell. TanStack Table is used instead of AG Grid Enterprise to avoid a prototype-time licence dependency while retaining full control over nested headers, filtering, visibility, and selection. Leaflet powers the spatial view, while the profile chart remains native SVG.
 
 The canonical domain schema in `src/data/schema.ts` drives both generated data and UI columns. A future FastAPI response should conform to the interfaces in `src/types/domain.ts`; replacing `generateVenues()` with a query layer should not require redesigning the grid or venue profile.
 

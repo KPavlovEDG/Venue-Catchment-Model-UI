@@ -1,13 +1,16 @@
 import { Download, Grid3X3, LoaderCircle, Map, RefreshCw } from 'lucide-react'
+import type { DashboardView } from '../types/domain'
 
 interface GlobalHeaderProps {
+  activeView: DashboardView
   lastSynced: string
   isRecalculating: boolean
   onExport: () => void
   onRecalculate: () => void
+  onViewChange: (view: DashboardView) => void
 }
 
-export function GlobalHeader({ lastSynced, isRecalculating, onExport, onRecalculate }: GlobalHeaderProps) {
+export function GlobalHeader({ activeView, lastSynced, isRecalculating, onExport, onRecalculate, onViewChange }: GlobalHeaderProps) {
   return (
     <header className="global-header">
       <div className="brand-lockup">
@@ -23,10 +26,10 @@ export function GlobalHeader({ lastSynced, isRecalculating, onExport, onRecalcul
       </div>
 
       <nav aria-label="Dashboard view" className="view-switcher">
-        <button aria-disabled="true" className="view-button" title="Map View is outside this prototype scope" type="button">
-          <Map size={15} /> Map View <span className="soon-badge">Soon</span>
+        <button aria-current={activeView === 'map' ? 'page' : undefined} className={`view-button ${activeView === 'map' ? 'active' : ''}`} onClick={() => onViewChange('map')} type="button">
+          <Map size={15} /> Map View
         </button>
-        <button aria-current="page" className="view-button active" type="button">
+        <button aria-current={activeView === 'grid' ? 'page' : undefined} className={`view-button ${activeView === 'grid' ? 'active' : ''}`} onClick={() => onViewChange('grid')} type="button">
           <Grid3X3 size={15} /> Grid View
         </button>
       </nav>
@@ -48,4 +51,3 @@ export function GlobalHeader({ lastSynced, isRecalculating, onExport, onRecalcul
     </header>
   )
 }
-

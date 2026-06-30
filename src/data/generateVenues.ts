@@ -32,6 +32,20 @@ const locations = [
   ['SA', 'Adelaide Metro', 'Adelaide'], ['SA', 'SA Regional', 'Mount Gambier'],
 ] as const
 
+const regionCenters: Record<string, readonly [number, number]> = {
+  'Sydney Metro': [-33.8688, 151.2093],
+  'Newcastle & Hunter': [-32.9283, 151.7817],
+  'NSW Regional': [-34.4278, 150.8931],
+  'Brisbane CBD': [-27.4698, 153.0251],
+  'Gold Coast': [-28.0167, 153.4000],
+  'QLD Regional': [-26.6500, 153.0667],
+  'Melbourne Metro': [-37.8136, 144.9631],
+  Geelong: [-38.1499, 144.3617],
+  'VIC Regional': [-37.5622, 143.8503],
+  'Adelaide Metro': [-34.9285, 138.6007],
+  'SA Regional': [-37.8284, 140.7804],
+}
+
 const clusters = [
   'Community Local', 'Family Bistro', 'Premium Dining', 'Entertainment Hub',
   'Gaming-Led Local', 'Sports & Social', 'Corporate Social', 'Leisure Destination',
@@ -151,6 +165,7 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
   return venueNames.map((name, index) => {
     const random = randomFactory(daypartSeed + index * 7919)
     const [state, region, lga] = locations[index % locations.length]
+    const [regionLatitude, regionLongitude] = regionCenters[region]
     const axes = Object.fromEntries(
       axisDefinitions.map((axis) => [axis.key, createAxisProfile(random, axis.key)]),
     ) as Record<AxisKey, AxisProfile>
@@ -191,8 +206,8 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       state,
       region,
       lga,
-      latitude: -33.86 + random() * 6.5,
-      longitude: 151.2 - random() * 9.4,
+      latitude: regionLatitude + (random() - 0.5) * 0.24,
+      longitude: regionLongitude + (random() - 0.5) * 0.28,
       currentCluster,
       targetCluster,
       macroGap,

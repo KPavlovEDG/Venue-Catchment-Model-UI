@@ -88,10 +88,12 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
   })
 
   const exportRowsRef = useRef<VenueRecord[]>([])
+  const lastExportRequestRef = useRef(exportRequest)
   exportRowsRef.current = table.getFilteredRowModel().rows.map((row) => row.original)
 
   useEffect(() => {
-    if (exportRequest > 0) exportVenuesToCsv(exportRowsRef.current)
+    if (exportRequest > lastExportRequestRef.current) exportVenuesToCsv(exportRowsRef.current)
+    lastExportRequestRef.current = exportRequest
   }, [exportRequest])
 
   const filteredCount = table.getFilteredRowModel().rows.length
@@ -156,8 +158,7 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
                   const value = cell.getValue()
                   return (
                     <td className={`${meta?.align ? `align-${meta.align}` : ''} ${meta?.tone ? `tone-${meta.tone}` : ''} ${meta?.sticky ? `sticky-${cell.column.id}` : ''}`} key={cell.id} style={{ width: cell.column.getSize() }}>
-                      {cell.column.id === 'macroGap' ? <span className={`gap-badge gap-${gapLevel(Number(value))}`}>{String(value)}</span>
-                        : cell.column.id.startsWith('gap-') ? <AxisGap value={Number(value)} />
+                      {cell.column.id === 'macroGap' || cell.column.id.startsWith('gap-') ? <AxisGap value={Number(value)} />
                         : cell.column.id === 'recommendationFrom' ? <RecommendationAttributes venue={row.original} target={false} />
                         : cell.column.id === 'recommendationTo' ? <RecommendationAttributes venue={row.original} target />
                         : cell.column.id === 'fromDynamics' ? <CompetitionCell venue={row.original} target={false} />

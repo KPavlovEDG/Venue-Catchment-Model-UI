@@ -15,6 +15,15 @@ export type Daypart =
   | 'High-Velocity Nightlife'
   | 'Weekend Leisure'
 
+export type DashboardView = 'map' | 'grid'
+export type MapMetric = 'overall' | AxisKey
+export type GapPriority = 'all' | 'high' | 'medium' | 'low'
+
+export interface MapLayers {
+  catchmentRadius: boolean
+  competitorPressure: boolean
+}
+
 export interface AxisProfile {
   currentDominant: string
   targetDominant: string
