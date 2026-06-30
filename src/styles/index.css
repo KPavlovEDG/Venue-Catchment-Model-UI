@@ -163,10 +163,11 @@ button { color: inherit; }
 .venue-grid tbody tr:hover td.tone-profile, .venue-grid tbody tr:hover td.tone-gap, .venue-grid tbody tr:hover td.tone-action, .venue-grid tbody tr:hover td.tone-competition, .venue-grid tbody tr:hover td.tone-distribution, .venue-grid tbody tr:hover td.tone-underlying { background: #f2f5ef; }
 .align-right { text-align: right; }
 .align-center { text-align: center; }
-.sticky-selectRows, .sticky-venueName { position: sticky !important; z-index: 23 !important; }
+.sticky-selectRows, .sticky-venueName { position: sticky !important; }
+.venue-grid tbody td.sticky-selectRows, .venue-grid tbody td.sticky-venueName { z-index: 4 !important; }
 .sticky-selectRows { left: 0; }
 .sticky-venueName { left: 44px; box-shadow: 5px 0 8px rgba(34,49,39,.055); }
-.header-level-4 .sticky-selectRows, .header-level-4 .sticky-venueName { z-index: 35 !important; }
+.venue-grid thead th.sticky-selectRows, .venue-grid thead th.sticky-venueName { z-index: 35 !important; }
 .grid-checkbox { vertical-align: middle; cursor: pointer; }
 .gap-badge { min-width: 35px; height: 23px; padding: 0 7px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 10px; font-weight: 700; }
 .gap-high { color: #8f3527; background: #f8ddd4; }
