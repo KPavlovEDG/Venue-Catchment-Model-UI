@@ -15,6 +15,8 @@ pnpm dev
 
 Open `http://localhost:5173`.
 
+Published prototype: <https://kpavlovedg.github.io/Venue-Catchment-Model-UI/>
+
 Quality checks:
 
 ```bash
@@ -60,3 +62,6 @@ React, Vite, and TypeScript provide the application shell. TanStack Table is use
 
 The canonical domain schema in `src/data/schema.ts` drives both generated data and UI columns. A future FastAPI response should conform to the interfaces in `src/types/domain.ts`; replacing `generateVenues()` with a query layer should not require redesigning the grid or venue profile.
 
+## GitHub Pages deployment
+
+Every push to `main` runs `.github/workflows/deploy-pages.yml`, builds the Vite application, and publishes `dist` to GitHub Pages. The project-specific base path is configured in `vite.config.ts`.
