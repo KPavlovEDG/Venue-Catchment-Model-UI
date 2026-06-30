@@ -101,7 +101,7 @@ export function MapSidebar(props: MapSidebarProps) {
         </div>
         <div className="map-layer-list">
           <label>
-            <span><strong>Catchment radius</strong><small>5 km demand area</small></span>
+            <span><strong>Catchment radius</strong><small>1 km demand area</small></span>
             <input checked={props.layers.catchmentRadius} onChange={(event) => props.onLayersChange({ ...props.layers, catchmentRadius: event.target.checked })} type="checkbox" />
           </label>
           <label>

@@ -131,7 +131,7 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
           dashArray: '7 7',
           fillColor: '#80bbe5',
           fillOpacity: 0.09,
-          radius: 5000,
+          radius: 1000,
           weight: 2,
         }).addTo(selection)
       }
