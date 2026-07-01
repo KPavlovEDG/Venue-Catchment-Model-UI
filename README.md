@@ -27,16 +27,16 @@ pnpm preview
 
 ## Prototype capabilities
 
-- Grid View with a strict four-tier column hierarchy and 302 available leaf columns
+- Grid View with a strict four-tier column hierarchy and 304 available leaf columns
 - Interactive Map View with macro/axis gap lenses, priority filtering, catchment radii, and competitor-pressure overlays
 - 50 realistic, deterministic venue records across 8 axes and 35 profile attributes
 - Excel-style per-column search, value selection, and numeric range filters
 - Multi-region geography filtering and five temporal daypart model slices
-- Metric-group visibility tree for Basic Facts, profiles, gaps, recommendations, competition, proportional results, and underlying metrics
+- Metric-group visibility tree for Basic Facts, profiles, gaps, recommendations, competition, proportional results, and axis-filtered underlying metrics
 - Multi-row selection and browser-persisted custom cohorts
 - CSV export of all model fields for the currently filtered venue set
 - Simulated model recalculation state and sync timestamp
-- 480 px venue profile drawer with gap severity, adaptive radar comparison, financial audit, and attribute-level recommendations
+- 760 px venue profile drawer with an independent daypart, interactive radar, linked attribute deep dive, competitor details, financial audit, and persisted operator comments
 
 FastAPI integration, server-side cohort persistence, authentication, and production data ingestion are outside this prototype scope.
 

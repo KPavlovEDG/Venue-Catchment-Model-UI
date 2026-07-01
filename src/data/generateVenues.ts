@@ -2,6 +2,7 @@ import { axisDefinitions } from './schema'
 import type {
   AxisKey,
   AxisProfile,
+  CompetitorDetail,
   Daypart,
   RecommendationChange,
   VenueRecord,
@@ -46,12 +47,12 @@ const regionCenters: Record<string, readonly [number, number]> = {
   'SA Regional': [-37.8284, 140.7804],
 }
 
-const clusters = [
-  'Community Local', 'Family Bistro', 'Premium Dining', 'Entertainment Hub',
-  'Gaming-Led Local', 'Sports & Social', 'Corporate Social', 'Leisure Destination',
-]
-
 const streets = ['George St', 'King St', 'Oxford St', 'High St', 'Pacific Hwy', 'Bay Rd', 'Station St', 'Victoria Rd']
+const competitorNames = [
+  'The Railway Hotel', 'Civic Social Club', 'The Corner House', 'Union Hotel', 'Market Lane Bar',
+  'The Local Arms', 'Parkside Pavilion', 'The Grand Hotel', 'Station Dining Room', 'Harbour Social',
+  'The Commercial Club', 'Central Tavern', 'The Neighbourhood', 'The Exchange Bar', 'Crown Hotel',
+]
 const kitchenTiers = ['Snack-only', 'Bistro', 'Full Restaurant']
 const kitchenTypes = ['Classic Pub', 'Modern Australian', 'Asian Fusion', 'Grill', 'Minimal']
 const serviceStyles = ['Counter Service', 'Hybrid', 'Table Service', 'Waitstaff']
@@ -136,6 +137,7 @@ function competitionForChanges(
   changes: RecommendationChange[],
   state: 'current' | 'recommended',
   venueSeed: number,
+  lga: string,
 ) {
   const competitorUniverse = Array.from({ length: 15 }, (_, index) => index)
   const attributeSets = changes.map((change) => {
@@ -151,12 +153,33 @@ function competitionForChanges(
         .slice(0, count),
     )
   })
-  return competitorUniverse.reduce((totals, competitor) => {
+  const competitors = competitorUniverse.reduce<CompetitorDetail[]>((details, competitor) => {
     const matchCount = attributeSets.filter((set) => set.has(competitor)).length
-    if (matchCount === changes.length) totals.direct += 1
-    else if (matchCount / changes.length > 0.5) totals.indirect += 1
-    return totals
-  }, { direct: 0, indirect: 0 })
+    const type = matchCount === changes.length
+      ? 'direct'
+      : matchCount / changes.length > 0.5 ? 'indirect' : null
+    if (!type) return details
+    const overlappingAttributes = changes.flatMap((change, changeIndex) => {
+      if (!attributeSets[changeIndex].has(competitor)) return []
+      const code = state === 'current' ? change.fromCode : change.toCode
+      return [{ axis: change.axis, axisLabel: change.axisLabel, code, label: attributeLabel(change.axis, code) }]
+    })
+    details.push({
+      id: `${state}-${venueSeed}-${competitor}`,
+      name: competitorNames[(competitor + Math.abs(venueSeed)) % competitorNames.length],
+      address: `${18 + competitor * 7} ${streets[((competitor + venueSeed) >>> 0) % streets.length]}, ${lga}`,
+      type,
+      overlappingAttributes,
+    })
+    return details
+  }, [])
+  return {
+    counts: {
+      direct: competitors.filter((competitor) => competitor.type === 'direct').length,
+      indirect: competitors.filter((competitor) => competitor.type === 'indirect').length,
+    },
+    competitors,
+  }
 }
 
 export function generateVenues(daypart: Daypart): VenueRecord[] {
@@ -172,9 +195,7 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
     const macroGap = Math.round(
       Object.values(axes).reduce((total, axis) => total + axis.gap, 0) / axisDefinitions.length,
     )
-    const currentCluster = clusters[index % clusters.length]
-    const targetCluster = macroGap < 32 ? currentCluster : pick(random, clusters.filter((cluster) => cluster !== currentCluster))
-    const changeCount = macroGap < 32 ? 2 : 2 + (random() > 0.55 ? 1 : 0)
+    const changeCount = macroGap < 32 ? 2 : 2 + Math.floor(random() * 4)
     const highestAxes = [...axisDefinitions]
       .sort((a, b) => axes[b.key].gap - axes[a.key].gap)
       .slice(0, changeCount)
@@ -196,8 +217,8 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       }
     })
     const venueSeed = daypartSeed + index * 7919
-    const currentCompetition = competitionForChanges(axes, changes, 'current', venueSeed)
-    const recommendedCompetition = competitionForChanges(axes, changes, 'recommended', venueSeed)
+    const currentCompetition = competitionForChanges(axes, changes, 'current', venueSeed, lga)
+    const recommendedCompetition = competitionForChanges(axes, changes, 'recommended', venueSeed, lga)
 
     return {
       id: `VCE-${String(index + 1).padStart(3, '0')}`,
@@ -208,17 +229,20 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       lga,
       latitude: regionLatitude + (random() - 0.5) * 0.24,
       longitude: regionLongitude + (random() - 0.5) * 0.28,
-      currentCluster,
-      targetCluster,
       macroGap,
       axes,
       recommendation: {
         changes,
-        currentCompetition,
-        recommendedCompetition,
-        action: macroGap < 32
-          ? 'Maintain current proposition and monitor leading indicators.'
-          : `Prioritise ${changes.map((change) => change.toLabel.toLowerCase()).join(', ')} to close the largest demand gaps for the selected daypart.`,
+        currentCompetition: currentCompetition.counts,
+        recommendedCompetition: recommendedCompetition.counts,
+        currentCompetitors: currentCompetition.competitors,
+        recommendedCompetitors: recommendedCompetition.competitors,
+      },
+      operatorComment: {
+        currentPositioning: '',
+        recommendedPositioning: '',
+        author: '',
+        updatedAt: '',
       },
       assets: {
         indoorSeating: Math.floor(between(random, 45, 420)),

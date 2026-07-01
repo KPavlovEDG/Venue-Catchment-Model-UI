@@ -56,6 +56,28 @@ export interface CompetitorCounts {
   indirect: number
 }
 
+export interface CompetitorOverlap {
+  axis: AxisKey
+  axisLabel: string
+  code: string
+  label: string
+}
+
+export interface CompetitorDetail {
+  id: string
+  name: string
+  address: string
+  type: 'direct' | 'indirect'
+  overlappingAttributes: CompetitorOverlap[]
+}
+
+export interface VenueComment {
+  currentPositioning: string
+  recommendedPositioning: string
+  author: string
+  updatedAt: string
+}
+
 export interface VenueAssets {
   indoorSeating: number
   outdoorSeating: number
@@ -157,16 +179,16 @@ export interface VenueRecord {
   lga: string
   latitude: number
   longitude: number
-  currentCluster: string
-  targetCluster: string
   macroGap: number
   axes: Record<AxisKey, AxisProfile>
   recommendation: {
     changes: RecommendationChange[]
     currentCompetition: CompetitorCounts
     recommendedCompetition: CompetitorCounts
-    action: string
+    currentCompetitors: CompetitorDetail[]
+    recommendedCompetitors: CompetitorDetail[]
   }
+  operatorComment: VenueComment
   assets: VenueAssets
   operations: VenueOperations
   financials: VenueFinancials
@@ -182,6 +204,7 @@ export interface SavedCohort {
 }
 
 export type MetricGroupId =
+  | 'identity'
   | 'basic'
   | 'profiles'
   | 'gaps'

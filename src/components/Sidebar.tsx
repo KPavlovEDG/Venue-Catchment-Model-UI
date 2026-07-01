@@ -1,6 +1,6 @@
 import { BookmarkPlus, ChevronDown, Clock3, Columns3, MapPin, Play, Save, Trash2 } from 'lucide-react'
-import { dayparts, metricGroups, regionsByState } from '../data/schema'
-import type { Daypart, MetricGroupId, SavedCohort } from '../types/domain'
+import { axisDefinitions, dayparts, metricGroups, regionsByState } from '../data/schema'
+import type { AxisKey, Daypart, MetricGroupId, SavedCohort } from '../types/domain'
 
 interface SidebarProps {
   selectedRegions: string[]
@@ -9,6 +9,8 @@ interface SidebarProps {
   onDaypartChange: (daypart: Daypart) => void
   activeMetricGroups: Set<MetricGroupId>
   onMetricGroupToggle: (id: MetricGroupId) => void
+  underlyingAxes: Set<AxisKey>
+  onUnderlyingAxesChange: (axes: Set<AxisKey>) => void
   cohorts: SavedCohort[]
   cohortName: string
   onCohortNameChange: (name: string) => void
@@ -27,6 +29,13 @@ export function Sidebar(props: SidebarProps) {
         ? props.selectedRegions.filter((item) => item !== region)
         : [...props.selectedRegions, region],
     )
+  }
+
+  const toggleUnderlyingAxis = (axis: AxisKey) => {
+    const next = new Set(props.underlyingAxes)
+    if (next.has(axis)) next.delete(axis)
+    else next.add(axis)
+    props.onUnderlyingAxesChange(next)
   }
 
   return (
@@ -84,7 +93,6 @@ export function Sidebar(props: SidebarProps) {
             <label className={props.activeMetricGroups.has(group.id) ? 'metric-option active' : 'metric-option'} key={group.id}>
               <input
                 checked={props.activeMetricGroups.has(group.id)}
-                disabled={group.id === 'basic'}
                 onChange={() => props.onMetricGroupToggle(group.id)}
                 type="checkbox"
               />
@@ -93,6 +101,17 @@ export function Sidebar(props: SidebarProps) {
             </label>
           ))}
         </div>
+        {props.activeMetricGroups.has('underlying') && (
+          <div className="underlying-axis-filter">
+            <div><strong>Metrics supporting axes</strong><button onClick={() => props.onUnderlyingAxesChange(new Set())} type="button">Show all</button></div>
+            <p>No selection shows every underlying metric.</p>
+            <div className="axis-filter-chips">
+              {axisDefinitions.map((axis, index) => (
+                <button className={props.underlyingAxes.has(axis.key) ? 'active' : ''} key={axis.key} onClick={() => toggleUnderlyingAxis(axis.key)} title={axis.label} type="button">A{index + 1}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="control-module cohort-module">
@@ -127,4 +146,3 @@ export function Sidebar(props: SidebarProps) {
     </aside>
   )
 }
-

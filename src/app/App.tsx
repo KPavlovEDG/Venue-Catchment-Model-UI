@@ -8,15 +8,24 @@ import { VenueGrid } from '../features/grid/VenueGrid'
 import { MapSidebar } from '../features/map/MapSidebar'
 import { MapView } from '../features/map/MapView'
 import { VenueProfileDrawer } from '../features/venue-profile/VenueProfileDrawer'
-import type { DashboardView, Daypart, GapPriority, MapLayers, MapMetric, MetricGroupId, SavedCohort, VenueRecord } from '../types/domain'
+import type { AxisKey, DashboardView, Daypart, GapPriority, MapLayers, MapMetric, MetricGroupId, SavedCohort, VenueComment, VenueRecord } from '../types/domain'
 
 const storageKey = 'venue-catchment-cohorts-v1'
+const commentStorageKey = 'venue-catchment-comments-v1'
 
 function initialCohorts(): SavedCohort[] {
   try {
     return JSON.parse(localStorage.getItem(storageKey) ?? '[]') as SavedCohort[]
   } catch {
     return []
+  }
+}
+
+function initialComments(): Record<string, VenueComment> {
+  try {
+    return JSON.parse(localStorage.getItem(commentStorageKey) ?? '{}') as Record<string, VenueComment>
+  } catch {
+    return {}
   }
 }
 
@@ -37,23 +46,30 @@ export function App() {
   const [mapMetric, setMapMetric] = useState<MapMetric>('overall')
   const [mapPriority, setMapPriority] = useState<GapPriority>('all')
   const [mapLayers, setMapLayers] = useState<MapLayers>({ catchmentRadius: true, competitorPressure: true })
+  const [comments, setComments] = useState<Record<string, VenueComment>>(initialComments)
+  const [underlyingAxes, setUnderlyingAxes] = useState<Set<AxisKey>>(() => new Set())
 
   const allVenues = useMemo(() => generateVenues(daypart), [daypart])
   const venues = useMemo(
-    () => allVenues.filter((venue) => selectedRegions.includes(venue.region)),
-    [allVenues, selectedRegions],
+    () => allVenues
+      .filter((venue) => selectedRegions.includes(venue.region))
+      .map((venue) => ({ ...venue, operatorComment: comments[venue.id] ?? venue.operatorComment })),
+    [allVenues, comments, selectedRegions],
   )
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(cohorts))
   }, [cohorts])
 
+  useEffect(() => {
+    localStorage.setItem(commentStorageKey, JSON.stringify(comments))
+  }, [comments])
+
   const updateSelection = (updater: Updater<RowSelectionState>) => {
     setRowSelection((current) => functionalUpdate(updater, current))
   }
 
   const toggleMetricGroup = (id: MetricGroupId) => {
-    if (id === 'basic') return
     setActiveMetricGroups((current) => {
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
@@ -103,10 +119,12 @@ export function App() {
             onDeleteCohort={(id) => setCohorts((current) => current.filter((cohort) => cohort.id !== id))}
             onLoadCohort={loadCohort}
             onMetricGroupToggle={toggleMetricGroup}
+            onUnderlyingAxesChange={setUnderlyingAxes}
             onRegionsChange={setSelectedRegions}
             onSaveCohort={saveCohort}
             selectedRegions={selectedRegions}
             selectedVenueCount={Object.values(rowSelection).filter(Boolean).length}
+            underlyingAxes={underlyingAxes}
           />
         ) : (
           <MapSidebar
@@ -131,6 +149,7 @@ export function App() {
               onRowSelectionChange={updateSelection}
               onVenueSelect={setSelectedVenue}
               rowSelection={rowSelection}
+              underlyingAxes={underlyingAxes}
             />
           ) : (
             <MapView
@@ -145,7 +164,15 @@ export function App() {
           )}
         </main>
       </div>
-      {activeView === 'grid' && selectedVenue && <VenueProfileDrawer onClose={() => setSelectedVenue(null)} venue={selectedVenue} />}
+      {activeView === 'grid' && selectedVenue && (
+        <VenueProfileDrawer
+          comment={comments[selectedVenue.id] ?? selectedVenue.operatorComment}
+          initialDaypart={daypart}
+          onClose={() => setSelectedVenue(null)}
+          onCommentChange={(comment) => setComments((current) => ({ ...current, [selectedVenue.id]: comment }))}
+          venueId={selectedVenue.id}
+        />
+      )}
     </div>
   )
 }

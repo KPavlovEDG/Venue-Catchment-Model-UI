@@ -12,7 +12,7 @@ The source files are not copied into this repository because they may contain in
 
 | Requirement | Prototype implementation |
 | --- | --- |
-| Right-side venue profile drawer | Fixed 480 px drawer opened by row selection |
+| Right-side venue profile drawer | Expanded 760 px drawer with an independent daypart selector, linked profile analysis, competitor detail popups, and operator comments |
 | Excel-like header filters | Text search, unique-value selection, and numeric min/max filters in every eligible leaf header |
 | Lean left command deck | Exactly four modules: geography, daypart, metric groups, and custom cohorts |
 | Top global action bar | Product identity, working Map/Grid switcher, sync status, export, and recalculation |
@@ -20,11 +20,13 @@ The source files are not copied into this repository because they may contain in
 | 50 venues | Deterministic mock generator with realistic Australian venue, catchment, financial, asset, and loyalty values |
 | Eight-axis comparison | Customer, affluence, occasion, food, beverage, gaming, accommodation, and event/function |
 | 35 proportional attributes | Venue/catchment mixes and attribute-level competition data available in the column tree |
-| Venue profile chart | Native SVG radar comparing dominant venue and catchment weights across all axes |
+| Venue profile charts | Interactive SVG radar with multi-axis selection linked to a 35-attribute venue/catchment deep dive |
 | Financial audit | EBIT, EBITDA growth, ROI, funds employed, and trading density |
-| Automated recommendation | Two or three attribute shifts, current/recommended competitor sets, and action rationale |
+| Automated recommendation | Two to five compact from/to attribute shifts and current/recommended competitor sets with overlap details |
 | Custom selection workflow | Multi-row selection with named cohorts persisted to localStorage |
 | Export | All model fields for the current filtered venue set exported as CSV |
+| Operator context | Current/recommended positioning comments, author and update date persisted in-browser and reflected in the grid |
+| Underlying metric traceability | Axis references in metric headers plus a left-panel axis filter |
 | Spatial discovery | Leaflet map with macro/axis gap lenses, opportunity bands, realistic venue coordinates, catchment radius, competitor pressure, and attribute-level venue summaries |
 
 ## Deliberate prototype boundaries

@@ -72,8 +72,8 @@ export function MapVenuePanel({ venue, focusMetric, onClose }: MapVenuePanelProp
         </section>
 
         <section className="map-recommendation">
-          <span>Recommended response</span>
-          <strong>{venue.recommendation.action}</strong>
+          <span>Recommended attribute shifts</span>
+          <strong>{venue.recommendation.changes.length} priority changes identified for the selected daypart.</strong>
         </section>
       </div>
     </aside>

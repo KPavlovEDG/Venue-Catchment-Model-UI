@@ -15,7 +15,7 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import { buildColumns } from './columnDefinitions'
 import { ColumnFilterPopover } from './ColumnFilterPopover'
-import type { MetricGroupId, VenueRecord } from '../../types/domain'
+import type { AxisKey, MetricGroupId, VenueRecord } from '../../types/domain'
 import { exportVenuesToCsv } from '../../utils/exportCsv'
 
 interface VenueGridProps {
@@ -25,6 +25,7 @@ interface VenueGridProps {
   onRowSelectionChange: (updater: Updater<RowSelectionState>) => void
   onVenueSelect: (venue: VenueRecord) => void
   exportRequest: number
+  underlyingAxes: Set<AxisKey>
 }
 
 function gapLevel(value: number) {
@@ -40,15 +41,18 @@ function AxisGap({ value }: { value: number }) {
   )
 }
 
-function RecommendationAttributes({ venue, target }: { venue: VenueRecord; target: boolean }) {
+function RecommendationShifts({ venue }: { venue: VenueRecord }) {
   return (
-    <span className={`recommendation-attributes ${target ? 'target' : 'current'}`}>
+    <span className="recommendation-shifts-cell">
+      <span className="shift-count">{venue.recommendation.changes.length} shifts</span>
+      <span className="shift-scroll">
       {venue.recommendation.changes.map((change) => (
-        <span className="attribute-chip" key={change.axis}>
+        <span className="shift-pair" key={change.axis}>
           <small>{change.axisLabel}</small>
-          <strong>[{target ? change.toCode : change.fromCode}] {target ? change.toLabel : change.fromLabel}</strong>
+          <span><strong>[{change.fromCode}] {change.fromLabel}</strong><i>→</i><b>[{change.toCode}] {change.toLabel}</b></span>
         </span>
       ))}
+      </span>
     </span>
   )
 }
@@ -63,11 +67,30 @@ function CompetitionCell({ venue, target }: { venue: VenueRecord; target: boolea
   )
 }
 
-export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelectionChange, onVenueSelect, exportRequest }: VenueGridProps) {
+function DistributionCell({ columnId, venue, value }: { columnId: string; venue: VenueRecord; value: number }) {
+  const match = columnId.match(/^distribution-([^-]+)-(venueMix|catchmentMix)-(.+)$/)
+  if (!match) return String(value)
+  const axisKey = match[1] as AxisKey
+  const mixKey = match[2] as 'venueMix' | 'catchmentMix'
+  const code = match[3]
+  const profile = venue.axes[axisKey]
+  const otherMix = mixKey === 'venueMix' ? profile.catchmentMix : profile.venueMix
+  const delta = value - otherMix[code]
+  const magnitude = Math.abs(delta) < 3 ? 0 : Math.abs(delta) < 8 ? 1 : Math.abs(delta) < 15 ? 2 : 3
+  const dominant = Object.entries(profile[mixKey]).sort((left, right) => right[1] - left[1])[0][0] === code
+  return (
+    <span className={`distribution-value ${dominant ? 'dominant' : ''}`}>
+      <strong>{value.toFixed(1)}%</strong>
+      {magnitude > 0 && <span aria-label={`${Math.abs(delta).toFixed(1)} percentage points ${delta > 0 ? 'above' : 'below'} comparison`} className={delta > 0 ? 'distribution-up' : 'distribution-down'}>{(delta > 0 ? '▲' : '▼').repeat(magnitude)}</span>}
+    </span>
+  )
+}
+
+export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelectionChange, onVenueSelect, exportRequest, underlyingAxes }: VenueGridProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'macroGap', desc: true }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const columns = useMemo(() => buildColumns(activeMetricGroups), [activeMetricGroups])
+  const columns = useMemo(() => buildColumns(activeMetricGroups, underlyingAxes), [activeMetricGroups, underlyingAxes])
   // TanStack Table deliberately exposes non-memoizable callbacks; this component does not pass them to memoized children.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -104,7 +127,7 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
         <div>
           <span className="eyebrow">Operational cohort workspace</span>
           <h1>Performance Gap Analysis</h1>
-          <p><strong>{filteredCount}</strong> of {data.length} venues · sorted by opportunity</p>
+          <p><strong>{filteredCount}</strong> of {data.length} venues</p>
         </div>
         <div className="grid-toolbar-controls">
           {columnFilters.length > 0 && <button className="clear-all" onClick={() => setColumnFilters([])} type="button"><X size={14} /> Clear {columnFilters.length} column filters</button>}
@@ -135,11 +158,11 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
                         <div className="leaf-header">
                           {header.column.getCanSort() ? (
                             <button className="sort-trigger" onClick={header.column.getToggleSortingHandler()} type="button">
-                              <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                              <span className="leaf-label"><span>{flexRender(header.column.columnDef.header, header.getContext())}</span>{meta?.relevantAxes?.length ? <small>{meta.relevantAxes.map((axis) => `A${['customer', 'affluence', 'occasion', 'food', 'beverage', 'gaming', 'accommodation', 'function'].indexOf(axis) + 1}`).join(' · ')}</small> : null}</span>
                               {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : header.column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown className="sort-idle" size={12} />}
                             </button>
                           ) : (
-                            <div className="sort-trigger static"><span>{flexRender(header.column.columnDef.header, header.getContext())}</span></div>
+                            <div className="sort-trigger static"><span className="leaf-label"><span>{flexRender(header.column.columnDef.header, header.getContext())}</span>{meta?.relevantAxes?.length ? <small>{meta.relevantAxes.map((axis) => `A${['customer', 'affluence', 'occasion', 'food', 'beverage', 'gaming', 'accommodation', 'function'].indexOf(axis) + 1}`).join(' · ')}</small> : null}</span></div>
                           )}
                           {header.column.getCanFilter() && <ColumnFilterPopover column={header.column} />}
                         </div>
@@ -159,11 +182,12 @@ export function VenueGrid({ data, activeMetricGroups, rowSelection, onRowSelecti
                   return (
                     <td className={`${meta?.align ? `align-${meta.align}` : ''} ${meta?.tone ? `tone-${meta.tone}` : ''} ${meta?.sticky ? `sticky-${cell.column.id}` : ''}`} key={cell.id} style={{ width: cell.column.getSize() }}>
                       {cell.column.id === 'macroGap' || cell.column.id.startsWith('gap-') ? <AxisGap value={Number(value)} />
-                        : cell.column.id === 'recommendationFrom' ? <RecommendationAttributes venue={row.original} target={false} />
-                        : cell.column.id === 'recommendationTo' ? <RecommendationAttributes venue={row.original} target />
+                        : /^profile-.+-current$/.test(cell.column.id) ? (() => { const axis = cell.column.id.match(/^profile-(.+)-current$/)![1] as AxisKey; const changed = row.original.axes[axis].currentDominant !== row.original.axes[axis].targetDominant; return <span className={`profile-value ${changed ? 'changed' : ''}`}>{String(value)}</span> })()
+                        : cell.column.id === 'recommendationShifts' ? <RecommendationShifts venue={row.original} />
                         : cell.column.id === 'fromDynamics' ? <CompetitionCell venue={row.original} target={false} />
                         : cell.column.id === 'toDynamics' ? <CompetitionCell venue={row.original} target />
-                        : cell.column.id === 'recommendedAction' ? <span className="recommendation-summary">{String(value)}</span>
+                        : cell.column.id.startsWith('distribution-') ? <DistributionCell columnId={cell.column.id} value={Number(value)} venue={row.original} />
+                        : cell.column.id.startsWith('comment') ? <span className="comment-cell-value">{String(value || '—')}</span>
                         : flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   )
