@@ -105,8 +105,12 @@ export function MapSidebar(props: MapSidebarProps) {
             <input checked={props.layers.catchmentRadius} onChange={(event) => props.onLayersChange({ ...props.layers, catchmentRadius: event.target.checked })} type="checkbox" />
           </label>
           <label>
-            <span><strong>Competitor locations</strong><small>Direct + indirect for selected venue</small></span>
-            <input checked={props.layers.competitors} onChange={(event) => props.onLayersChange({ ...props.layers, competitors: event.target.checked })} type="checkbox" />
+            <span><strong>Current competitors</strong><small>Filled markers · direct + indirect</small></span>
+            <input checked={props.layers.currentCompetitors} onChange={(event) => props.onLayersChange({ ...props.layers, currentCompetitors: event.target.checked })} type="checkbox" />
+          </label>
+          <label>
+            <span><strong>Recommended competitors</strong><small>Outlined markers · target attributes</small></span>
+            <input checked={props.layers.recommendedCompetitors} onChange={(event) => props.onLayersChange({ ...props.layers, recommendedCompetitors: event.target.checked })} type="checkbox" />
           </label>
         </div>
       </section>

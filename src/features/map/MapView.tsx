@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { axisDefinitions } from '../../data/schema'
-import type { GapPriority, MapLayers, MapMetric, VenueRecord } from '../../types/domain'
+import type { CompetitorDetail, GapPriority, MapLayers, MapMetric, VenueRecord } from '../../types/domain'
 import { exportVenuesToCsv } from '../../utils/exportCsv'
 
 interface MapViewProps {
@@ -134,23 +134,41 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
     const competitors = competitorLayerRef.current
     if (!competitors) return
     competitors.clearLayers()
-    if (!layers.competitors || !selectedVenue) return
-    selectedVenue.recommendation.currentCompetitors.forEach((competitor) => {
-      const direct = competitor.type === 'direct'
-      const overlaps = competitor.overlappingAttributes.map((attribute) => attribute.label).join(', ')
+    if (!selectedVenue || (!layers.currentCompetitors && !layers.recommendedCompetitors)) return
+
+    const combined = new Map<string, { current?: CompetitorDetail; recommended?: CompetitorDetail }>()
+    const addCompetitor = (competitor: CompetitorDetail, state: 'current' | 'recommended') => {
+      const key = `${competitor.name}|${competitor.address}`
+      combined.set(key, { ...combined.get(key), [state]: competitor })
+    }
+    if (layers.currentCompetitors) selectedVenue.recommendation.currentCompetitors.forEach((competitor) => addCompetitor(competitor, 'current'))
+    if (layers.recommendedCompetitors) selectedVenue.recommendation.recommendedCompetitors.forEach((competitor) => addCompetitor(competitor, 'recommended'))
+
+    combined.forEach(({ current, recommended }) => {
+      const competitor = current ?? recommended!
+      const state = current && recommended ? 'both' : current ? 'current' : 'recommended'
+      const strongestType = current?.type === 'direct' || recommended?.type === 'direct' ? 'direct' : 'indirect'
+      const direct = strongestType === 'direct'
+      const currentOverlaps = current?.overlappingAttributes.map((attribute) => attribute.label).join(', ')
+      const recommendedOverlaps = recommended?.overlappingAttributes.map((attribute) => attribute.label).join(', ')
+      const stateDetails = [
+        current ? `Current: ${current.type}${currentOverlaps ? ` · ${currentOverlaps}` : ''}` : '',
+        recommended ? `Recommended: ${recommended.type}${recommendedOverlaps ? ` · ${recommendedOverlaps}` : ''}` : '',
+      ].filter(Boolean).join('<br>')
       L.circleMarker([competitor.latitude, competitor.longitude], {
         bubblingMouseEvents: false,
-        className: `competitor-map-marker ${competitor.type}`,
-        color: direct ? '#b44d39' : '#8a6b24',
+        className: `competitor-map-marker ${state} ${strongestType}`,
+        color: state === 'both' ? '#356088' : direct ? '#b44d39' : '#8a6b24',
+        dashArray: state === 'recommended' ? '3 2' : undefined,
         fillColor: direct ? '#d56852' : '#d1a63d',
-        fillOpacity: 0.92,
+        fillOpacity: state === 'recommended' ? 0.1 : 0.92,
         radius: direct ? 7 : 5.5,
-        weight: 2,
+        weight: state === 'both' ? 4 : state === 'recommended' ? 2.5 : 2,
       })
-        .bindTooltip(`${competitor.name} · ${competitor.type}<br>${competitor.address}<br>Overlap: ${overlaps}`, { direction: 'top' })
+        .bindTooltip(`${competitor.name}<br>${competitor.address}<br>${stateDetails}`, { direction: 'top' })
         .addTo(competitors)
     })
-  }, [layers.competitors, selectedVenue])
+  }, [layers.currentCompetitors, layers.recommendedCompetitors, selectedVenue])
 
   useEffect(() => {
     const map = mapRef.current
@@ -189,7 +207,8 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
         <div className="map-legend" aria-label="Gap score legend">
           <strong>Gap score</strong><span><i className="high" />65-100</span><span><i className="medium" />38-64</span><span><i className="low" />0-37</span>
           {layers.catchmentRadius && <span><i className="catchment" />1 km catchment</span>}
-          {layers.competitors && <><span><i className="direct-competitor" />Direct</span><span><i className="indirect-competitor" />Indirect</span></>}
+          {layers.currentCompetitors && <><span><i className="current-direct" />Current direct</span><span><i className="current-indirect" />Current indirect</span></>}
+          {layers.recommendedCompetitors && <><span><i className="recommended-direct" />Recommended direct</span><span><i className="recommended-indirect" />Recommended indirect</span></>}
         </div>
         {visibleVenues.length === 0 && <div className="map-empty"><strong>No venues in this opportunity band</strong><span>Change the priority band or geographic scope.</span></div>}
       </div>

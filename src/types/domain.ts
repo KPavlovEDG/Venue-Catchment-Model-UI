@@ -21,7 +21,8 @@ export type GapPriority = 'all' | 'high' | 'medium' | 'low'
 
 export interface MapLayers {
   catchmentRadius: boolean
-  competitors: boolean
+  currentCompetitors: boolean
+  recommendedCompetitors: boolean
 }
 
 export interface AxisProfile {

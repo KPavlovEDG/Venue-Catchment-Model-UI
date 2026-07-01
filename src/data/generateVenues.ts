@@ -167,8 +167,12 @@ function competitionForChanges(
       const code = state === 'current' ? change.fromCode : change.toCode
       return [{ axis: change.axis, axisLabel: change.axisLabel, code, label: attributeLabel(change.axis, code) }]
     })
-    const bearing = ((hashSeed(`${venueSeed}:competitor:${competitor}`) >>> 0) % 360) * (Math.PI / 180)
-    const distanceKm = 0.8 + ((hashSeed(`${venueSeed}:distance:${competitor}`) >>> 0) % 43) / 10
+    const positionRandom = randomFactory(hashSeed(`${venueSeed}:competitor-position:${competitor}`))
+    const rotationRandom = randomFactory(hashSeed(`${venueSeed}:competitor-rotation`))
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+    const bearingJitter = (positionRandom() - 0.5) * 0.42
+    const bearing = rotationRandom() * Math.PI * 2 + competitor * goldenAngle + bearingJitter
+    const distanceKm = 0.12 + Math.sqrt(positionRandom()) * 0.78
     const latitudeOffset = (distanceKm / 111.32) * Math.cos(bearing)
     const longitudeOffset = (distanceKm / (111.32 * Math.cos(venueLatitude * Math.PI / 180))) * Math.sin(bearing)
     details.push({

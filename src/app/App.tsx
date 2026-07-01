@@ -45,7 +45,7 @@ export function App() {
   const [lastSynced, setLastSynced] = useState('Today, 09:00 AM')
   const [mapMetric, setMapMetric] = useState<MapMetric>('overall')
   const [mapPriority, setMapPriority] = useState<GapPriority>('all')
-  const [mapLayers, setMapLayers] = useState<MapLayers>({ catchmentRadius: true, competitors: true })
+  const [mapLayers, setMapLayers] = useState<MapLayers>({ catchmentRadius: true, currentCompetitors: true, recommendedCompetitors: true })
   const [comments, setComments] = useState<Record<string, VenueComment>>(initialComments)
   const [underlyingAxes, setUnderlyingAxes] = useState<Set<AxisKey>>(() => new Set())
 
