@@ -190,15 +190,15 @@ function recommendations(): ColumnDef<VenueRecord> {
 }
 
 function competition(): ColumnDef<VenueRecord> {
-  const summary = group('competition-summary', 'Audience & Competitor Summary', axisDefinitions.map((axis) =>
-    group(`competition-summary-${axis.key}`, axis.label, [
-        leaf(`competition-${axis.key}-alh-sot`, 'ALH Venue SoT', (row) => row.axes[axis.key].alhShareOfTime, { variant: 'number', format: percent, tone: 'competition' }),
-        leaf(`competition-${axis.key}-direct-sot`, 'Direct Competitor SoT', (row) => row.axes[axis.key].directCompetitorShareOfTime, { variant: 'number', format: percent, tone: 'competition' }),
-        leaf(`competition-${axis.key}-adjacent-sot`, 'Adjacent Competitor SoT', (row) => row.axes[axis.key].adjacentCompetitorShareOfTime, { variant: 'number', format: percent, tone: 'competition' }),
-        leaf(`competition-${axis.key}-direct-count`, 'Direct Count', (row) => row.axes[axis.key].directCompetitorCount, { variant: 'number', format: count, tone: 'competition' }),
-        leaf(`competition-${axis.key}-adjacent-count`, 'Adjacent Count', (row) => row.axes[axis.key].adjacentCompetitorCount, { variant: 'number', format: count, tone: 'competition' }),
-    ], 'competition', 'competition'),
-  ), 'competition', 'competition')
+  const averageAxisMetric = (row: VenueRecord, metric: 'alhShareOfTime' | 'directCompetitorShareOfTime' | 'adjacentCompetitorShareOfTime') =>
+    axisDefinitions.reduce((total, axis) => total + row.axes[axis.key][metric], 0) / axisDefinitions.length
+  const summary = group('competition-summary', 'Audience & Competitor Summary', [
+    leaf('competition-summary-alh-sot', 'ALH Venue SoT', (row) => averageAxisMetric(row, 'alhShareOfTime'), { variant: 'number', format: percent, tone: 'competition' }),
+    leaf('competition-summary-direct-sot', 'Direct Competitor SoT', (row) => averageAxisMetric(row, 'directCompetitorShareOfTime'), { variant: 'number', format: percent, tone: 'competition' }),
+    leaf('competition-summary-adjacent-sot', 'Adjacent Competitor SoT', (row) => averageAxisMetric(row, 'adjacentCompetitorShareOfTime'), { variant: 'number', format: percent, tone: 'competition' }),
+    leaf('competition-summary-direct-count', 'Direct Count', (row) => row.recommendation.currentCompetition.direct, { variant: 'number', format: count, tone: 'competition' }),
+    leaf('competition-summary-adjacent-count', 'Adjacent Count', (row) => row.recommendation.currentCompetition.indirect, { variant: 'number', format: count, tone: 'competition' }),
+  ], 'competition', 'competition')
   const breakdown = axisDefinitions.map((axis) =>
     group(`competition-${axis.key}`, axis.label, axis.attributes.map((attribute) =>
         group(`competition-${axis.key}-${attribute.code}`, `[${attribute.code}] ${attribute.label}`, [

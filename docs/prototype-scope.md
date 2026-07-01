@@ -27,6 +27,7 @@ The source files are not copied into this repository because they may contain in
 | Export | All model fields for the current filtered venue set exported as CSV |
 | Operator context | Current/recommended positioning comments, author and update date persisted in-browser and reflected in the grid |
 | Underlying metric traceability | Axis references in metric headers plus a left-panel axis filter |
+| Competitive overlay | One portfolio-level audience/competitor summary followed by axis and attribute-level breakdowns |
 | Spatial discovery | Leaflet map with macro/axis gap lenses, opportunity bands, realistic venue coordinates, catchment radius, competitor pressure, and attribute-level venue summaries |
 
 ## Deliberate prototype boundaries

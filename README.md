@@ -27,7 +27,7 @@ pnpm preview
 
 ## Prototype capabilities
 
-- Grid View with a strict four-tier column hierarchy and 304 available leaf columns
+- Grid View with a deep hierarchical schema and more than 260 available leaf columns
 - Interactive Map View with macro/axis gap lenses, priority filtering, catchment radii, and competitor-pressure overlays
 - 50 realistic, deterministic venue records across 8 axes and 35 profile attributes
 - Excel-style per-column search, value selection, and numeric range filters
