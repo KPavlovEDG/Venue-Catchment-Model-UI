@@ -4,7 +4,6 @@ import 'leaflet/dist/leaflet.css'
 import { axisDefinitions } from '../../data/schema'
 import type { GapPriority, MapLayers, MapMetric, VenueRecord } from '../../types/domain'
 import { exportVenuesToCsv } from '../../utils/exportCsv'
-import { MapVenuePanel } from './MapVenuePanel'
 
 interface MapViewProps {
   data: VenueRecord[]
@@ -35,8 +34,8 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
   const mapElementRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markerLayerRef = useRef<L.LayerGroup | null>(null)
-  const pressureLayerRef = useRef<L.LayerGroup | null>(null)
-  const selectionLayerRef = useRef<L.LayerGroup | null>(null)
+  const catchmentLayerRef = useRef<L.LayerGroup | null>(null)
+  const competitorLayerRef = useRef<L.LayerGroup | null>(null)
   const onVenueSelectRef = useRef(onVenueSelect)
 
   const visibleVenues = useMemo(
@@ -45,6 +44,9 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
   )
   const exportRowsRef = useRef(visibleVenues)
   const lastExportRequestRef = useRef(exportRequest)
+  const selectedVenueId = selectedVenue?.id
+  const selectedVenueLatitude = selectedVenue?.latitude
+  const selectedVenueLongitude = selectedVenue?.longitude
 
   useEffect(() => {
     onVenueSelectRef.current = onVenueSelect
@@ -69,8 +71,8 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
       subdomains: 'abcd',
     }).addTo(map)
     markerLayerRef.current = L.layerGroup().addTo(map)
-    pressureLayerRef.current = L.layerGroup().addTo(map)
-    selectionLayerRef.current = L.layerGroup().addTo(map)
+    catchmentLayerRef.current = L.layerGroup().addTo(map)
+    competitorLayerRef.current = L.layerGroup().addTo(map)
     map.on('click', () => onVenueSelectRef.current(null))
     mapRef.current = map
     return () => {
@@ -82,13 +84,9 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
   useEffect(() => {
     const map = mapRef.current
     const markers = markerLayerRef.current
-    const pressure = pressureLayerRef.current
-    const selection = selectionLayerRef.current
-    if (!map || !markers || !pressure || !selection) return
+    if (!map || !markers) return
 
     markers.clearLayers()
-    pressure.clearLayers()
-    selection.clearLayers()
 
     visibleVenues.forEach((venue) => {
       const score = scoreFor(venue, focusMetric)
@@ -108,39 +106,64 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
       marker.bindTooltip(`${venue.name} · ${score}`, { direction: 'top', offset: [0, -15] })
       marker.on('click', () => onVenueSelectRef.current(venue))
       marker.addTo(markers)
-
-      if (layers.competitorPressure) {
-        const count = venue.recommendation.currentCompetition.direct + venue.recommendation.currentCompetition.indirect
-        L.circle([venue.latitude, venue.longitude], {
-          className: 'competitor-pressure-circle',
-          color: '#6b8fa8',
-          fillColor: '#80bbe5',
-          fillOpacity: Math.min(0.08 + count * 0.012, 0.24),
-          opacity: 0.26,
-          radius: 7000 + count * 1800,
-          weight: 1,
-        }).addTo(pressure)
-      }
     })
+  }, [focusMetric, selectedVenue?.id, visibleVenues])
 
-    if (selectedVenue && visibleVenues.some((venue) => venue.id === selectedVenue.id)) {
-      if (layers.catchmentRadius) {
-        L.circle([selectedVenue.latitude, selectedVenue.longitude], {
-          className: 'selected-catchment-circle',
+  useEffect(() => {
+    const catchments = catchmentLayerRef.current
+    if (!catchments) return
+    catchments.clearLayers()
+    if (!layers.catchmentRadius) return
+    visibleVenues.forEach((venue) => {
+      const selected = venue.id === selectedVenue?.id
+      L.circle([venue.latitude, venue.longitude], {
+          className: `venue-catchment-circle${selected ? ' selected' : ''}`,
           color: '#356088',
           dashArray: '7 7',
           fillColor: '#80bbe5',
-          fillOpacity: 0.09,
+          fillOpacity: selected ? 0.12 : 0.045,
           radius: 1000,
-          weight: 2,
-        }).addTo(selection)
-      }
-      map.flyTo([selectedVenue.latitude, selectedVenue.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 })
-    } else if (visibleVenues.length > 0) {
-      const bounds = L.latLngBounds(visibleVenues.map((venue) => [venue.latitude, venue.longitude]))
-      map.fitBounds(bounds, { padding: [54, 54], maxZoom: 10 })
-    }
-  }, [focusMetric, layers, selectedVenue, visibleVenues])
+          weight: selected ? 2 : 1,
+        })
+        .bindTooltip(`${venue.name} · 1 km catchment`, { direction: 'top' })
+        .addTo(catchments)
+    })
+  }, [layers.catchmentRadius, selectedVenue?.id, visibleVenues])
+
+  useEffect(() => {
+    const competitors = competitorLayerRef.current
+    if (!competitors) return
+    competitors.clearLayers()
+    if (!layers.competitors || !selectedVenue) return
+    selectedVenue.recommendation.currentCompetitors.forEach((competitor) => {
+      const direct = competitor.type === 'direct'
+      const overlaps = competitor.overlappingAttributes.map((attribute) => attribute.label).join(', ')
+      L.circleMarker([competitor.latitude, competitor.longitude], {
+        bubblingMouseEvents: false,
+        className: `competitor-map-marker ${competitor.type}`,
+        color: direct ? '#b44d39' : '#8a6b24',
+        fillColor: direct ? '#d56852' : '#d1a63d',
+        fillOpacity: 0.92,
+        radius: direct ? 7 : 5.5,
+        weight: 2,
+      })
+        .bindTooltip(`${competitor.name} · ${competitor.type}<br>${competitor.address}<br>Overlap: ${overlaps}`, { direction: 'top' })
+        .addTo(competitors)
+    })
+  }, [layers.competitors, selectedVenue])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || visibleVenues.length === 0) return
+    const bounds = L.latLngBounds(visibleVenues.map((venue) => [venue.latitude, venue.longitude]))
+    map.fitBounds(bounds, { padding: [54, 54], maxZoom: 10 })
+  }, [visibleVenues])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !selectedVenueId || selectedVenueLatitude === undefined || selectedVenueLongitude === undefined || !visibleVenues.some((venue) => venue.id === selectedVenueId)) return
+    map.flyTo([selectedVenueLatitude, selectedVenueLongitude], Math.max(map.getZoom(), 12), { duration: 0.55 })
+  }, [selectedVenueId, selectedVenueLatitude, selectedVenueLongitude, visibleVenues])
 
   const sortedScores = visibleVenues.map((venue) => scoreFor(venue, focusMetric)).sort((left, right) => left - right)
   const medianScore = sortedScores.length ? sortedScores[Math.floor(sortedScores.length / 2)] : 0
@@ -165,12 +188,10 @@ export function MapView({ data, exportRequest, focusMetric, layers, priority, se
         <div aria-label="Interactive map of venue gap opportunities" className="map-canvas" ref={mapElementRef} role="application" />
         <div className="map-legend" aria-label="Gap score legend">
           <strong>Gap score</strong><span><i className="high" />65-100</span><span><i className="medium" />38-64</span><span><i className="low" />0-37</span>
-          {layers.competitorPressure && <small>Halo = competitor pressure</small>}
+          {layers.catchmentRadius && <span><i className="catchment" />1 km catchment</span>}
+          {layers.competitors && <><span><i className="direct-competitor" />Direct</span><span><i className="indirect-competitor" />Indirect</span></>}
         </div>
         {visibleVenues.length === 0 && <div className="map-empty"><strong>No venues in this opportunity band</strong><span>Change the priority band or geographic scope.</span></div>}
-        {selectedVenue && visibleVenues.some((venue) => venue.id === selectedVenue.id) && (
-          <MapVenuePanel focusMetric={focusMetric} onClose={() => onVenueSelect(null)} venue={selectedVenue} />
-        )}
       </div>
     </section>
   )

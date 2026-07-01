@@ -4,6 +4,7 @@ import { generateVenues } from '../../data/generateVenues'
 import { dayparts } from '../../data/schema'
 import type { AxisKey, Daypart, VenueComment } from '../../types/domain'
 import { AxisProfileExplorer, ProfileSummary } from './AxisProfileExplorer'
+import { CatchmentCompetition } from './CatchmentCompetition'
 import { CompetitorPopup } from './CompetitorPopup'
 import { RadarChart } from './RadarChart'
 
@@ -59,6 +60,7 @@ export function VenueProfileDrawer({ venueId, initialDaypart, comment, onComment
 
       <div className="drawer-body">
         <ProfileSummary venue={venue} />
+        <CatchmentCompetition venue={venue} />
         <RadarChart onAxisToggle={toggleAxis} selectedAxes={selectedAxes} venue={venue} />
         <AxisProfileExplorer onAxisToggle={toggleAxis} onClear={() => setSelectedAxes(new Set())} selectedAxes={selectedAxes} venue={venue} />
 

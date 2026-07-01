@@ -106,7 +106,7 @@ function createAxisProfile(random: () => number, axisKey: AxisKey): AxisProfile 
   const gap = Math.min(100, Math.round(gaps.reduce((total, value) => total + value, 0) * 1.35))
   const attributeCompetition = Object.fromEntries(
     codes.map((code) => [code, {
-      competitorCount: Math.floor(between(random, 0, 14)),
+      competitorCount: Math.floor(between(random, 1, 14)),
       competitorShareOfTime: between(random, 2, 42),
     }]),
   )
@@ -138,20 +138,23 @@ function competitionForChanges(
   state: 'current' | 'recommended',
   venueSeed: number,
   lga: string,
+  venueLatitude: number,
+  venueLongitude: number,
 ) {
   const competitorUniverse = Array.from({ length: 15 }, (_, index) => index)
+  const directAnchor = (hashSeed(`${venueSeed}:direct-anchor`) >>> 0) % competitorUniverse.length
   const attributeSets = changes.map((change) => {
     const code = state === 'current' ? change.fromCode : change.toCode
     const count = axes[change.axis].attributeCompetition[code].competitorCount
-    return new Set(
-      [...competitorUniverse]
+    const ranked = [...competitorUniverse]
+        .filter((competitor) => competitor !== directAnchor)
         .sort((left, right) => {
           const leftScore = hashSeed(`${venueSeed}:${change.axis}:${code}:${left}`) >>> 0
           const rightScore = hashSeed(`${venueSeed}:${change.axis}:${code}:${right}`) >>> 0
           return leftScore - rightScore
         })
-        .slice(0, count),
-    )
+        .slice(0, Math.max(0, count - 1))
+    return new Set(count > 0 ? [directAnchor, ...ranked] : ranked)
   })
   const competitors = competitorUniverse.reduce<CompetitorDetail[]>((details, competitor) => {
     const matchCount = attributeSets.filter((set) => set.has(competitor)).length
@@ -164,10 +167,16 @@ function competitionForChanges(
       const code = state === 'current' ? change.fromCode : change.toCode
       return [{ axis: change.axis, axisLabel: change.axisLabel, code, label: attributeLabel(change.axis, code) }]
     })
+    const bearing = ((hashSeed(`${venueSeed}:competitor:${competitor}`) >>> 0) % 360) * (Math.PI / 180)
+    const distanceKm = 0.8 + ((hashSeed(`${venueSeed}:distance:${competitor}`) >>> 0) % 43) / 10
+    const latitudeOffset = (distanceKm / 111.32) * Math.cos(bearing)
+    const longitudeOffset = (distanceKm / (111.32 * Math.cos(venueLatitude * Math.PI / 180))) * Math.sin(bearing)
     details.push({
       id: `${state}-${venueSeed}-${competitor}`,
       name: competitorNames[(competitor + Math.abs(venueSeed)) % competitorNames.length],
       address: `${18 + competitor * 7} ${streets[((competitor + venueSeed) >>> 0) % streets.length]}, ${lga}`,
+      latitude: venueLatitude + latitudeOffset,
+      longitude: venueLongitude + longitudeOffset,
       type,
       overlappingAttributes,
     })
@@ -217,8 +226,10 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       }
     })
     const venueSeed = daypartSeed + index * 7919
-    const currentCompetition = competitionForChanges(axes, changes, 'current', venueSeed, lga)
-    const recommendedCompetition = competitionForChanges(axes, changes, 'recommended', venueSeed, lga)
+    const latitude = regionLatitude + (random() - 0.5) * 0.24
+    const longitude = regionLongitude + (random() - 0.5) * 0.28
+    const currentCompetition = competitionForChanges(axes, changes, 'current', venueSeed, lga, latitude, longitude)
+    const recommendedCompetition = competitionForChanges(axes, changes, 'recommended', venueSeed, lga, latitude, longitude)
 
     return {
       id: `VCE-${String(index + 1).padStart(3, '0')}`,
@@ -227,8 +238,8 @@ export function generateVenues(daypart: Daypart): VenueRecord[] {
       state,
       region,
       lga,
-      latitude: regionLatitude + (random() - 0.5) * 0.24,
-      longitude: regionLongitude + (random() - 0.5) * 0.28,
+      latitude,
+      longitude,
       macroGap,
       axes,
       recommendation: {

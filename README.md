@@ -28,7 +28,7 @@ pnpm preview
 ## Prototype capabilities
 
 - Grid View with a deep hierarchical schema and more than 260 available leaf columns
-- Interactive Map View with macro/axis gap lenses, priority filtering, catchment radii, and competitor-pressure overlays
+- Interactive Map View with macro/axis gap lenses, priority filtering, fixed 1 km catchments, and direct/indirect competitor locations
 - 50 realistic, deterministic venue records across 8 axes and 35 profile attributes
 - Excel-style per-column search, value selection, and numeric range filters
 - Multi-region geography filtering and five temporal daypart model slices

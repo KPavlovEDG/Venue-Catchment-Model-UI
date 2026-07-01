@@ -79,8 +79,8 @@ export function MapSidebar(props: MapSidebarProps) {
         <label className="select-label">
           <span>Gap score shown on map</span>
           <select value={props.focusMetric} onChange={(event) => props.onFocusMetricChange(event.target.value as MapMetric)}>
-            <option value="overall">Overall Macro Gap</option>
-            {axisDefinitions.map((axis) => <option key={axis.key} value={axis.key}>{axis.prompt} - {axis.label.replace(/^Axis \d+: /, '')}</option>)}
+            <option value="overall">Overall Macro Gap Score</option>
+            {axisDefinitions.map((axis) => <option key={axis.key} value={axis.key}>{axis.label.replace(/^Axis \d+: /, '')} Gap Score</option>)}
           </select>
         </label>
         <label className="select-label map-priority-select">
@@ -105,8 +105,8 @@ export function MapSidebar(props: MapSidebarProps) {
             <input checked={props.layers.catchmentRadius} onChange={(event) => props.onLayersChange({ ...props.layers, catchmentRadius: event.target.checked })} type="checkbox" />
           </label>
           <label>
-            <span><strong>Competitor pressure</strong><small>Current direct + indirect set</small></span>
-            <input checked={props.layers.competitorPressure} onChange={(event) => props.onLayersChange({ ...props.layers, competitorPressure: event.target.checked })} type="checkbox" />
+            <span><strong>Competitor locations</strong><small>Direct + indirect for selected venue</small></span>
+            <input checked={props.layers.competitors} onChange={(event) => props.onLayersChange({ ...props.layers, competitors: event.target.checked })} type="checkbox" />
           </label>
         </div>
       </section>

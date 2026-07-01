@@ -21,7 +21,7 @@ export type GapPriority = 'all' | 'high' | 'medium' | 'low'
 
 export interface MapLayers {
   catchmentRadius: boolean
-  competitorPressure: boolean
+  competitors: boolean
 }
 
 export interface AxisProfile {
@@ -67,6 +67,8 @@ export interface CompetitorDetail {
   id: string
   name: string
   address: string
+  latitude: number
+  longitude: number
   type: 'direct' | 'indirect'
   overlappingAttributes: CompetitorOverlap[]
 }
